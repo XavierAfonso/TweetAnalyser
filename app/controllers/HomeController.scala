@@ -10,9 +10,10 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import play.api.mvc._
 import play.api.libs.ws._
-import scala.util.{Failure, Success}
 
+import scala.util.{Failure, Success}
 import com.typesafe.config.ConfigFactory
+import play.api.libs.json._
 case class HttpBinResponse(origin: String, headers: Map[String, String])
 
 /**
@@ -21,17 +22,6 @@ case class HttpBinResponse(origin: String, headers: Map[String, String])
  */
 @Singleton
 class HomeController @Inject()(cc: ControllerComponents, ws: WSClient) extends AbstractController(cc) {
-
-  val oauth_consumer_key:String = ConfigFactory.load().getString("env.oauth_consumer_key")
-  val oauth_token:String  = ConfigFactory.load().getString("env.oauth_token")
-  val oauth_signature_method:String  = ConfigFactory.load().getString("env.oauth_signature_method")
-  val oauth_timestamp:String  = ConfigFactory.load().getString("env.oauth_timestamp")
-  val oauth_nonce:String  = ConfigFactory.load().getString("env.oauth_nonce")
-  val oauth_version:String  = ConfigFactory.load().getString("env.oauth_version")
-  val oauth_signature:String  = ConfigFactory.load().getString("env.oauth_signature")
-
-
-  val headers: String = "OAuth oauth_consumer_key=" + oauth_consumer_key +",oauth_token="+oauth_token+",oauth_signature_method="+oauth_signature_method+",oauth_timestamp="+oauth_timestamp+",oauth_nonce="+oauth_nonce+",oauth_version="+oauth_version+",oauth_signature="+oauth_signature+""
 
   /**
    * Create an Action to render an HTML page with a welcome message.
@@ -43,17 +33,66 @@ class HomeController @Inject()(cc: ControllerComponents, ws: WSClient) extends A
     Ok(views.html.index("Your new application is ready."))
   }
 
-  val request: WSRequest = ws.url("https://api.twitter.com/1.1/statuses/user_timeline.json?user_id=2886752038&count=1")
+  val token:String  = ConfigFactory.load().getString("env.token")
+  val headers: String = "Bearer " + token
 
-  val complexRequest: WSRequest =
+  //val screenName:String = "@Chronique_NEXUS"
+  //val screenName:String = "@FrancoisTheurel"
 
-    request.addHttpHeaders("Authorization" -> headers )
-      .withRequestTimeout(10000.millis)
+  val screenName:String = "@lemondefr"
 
-  val futureResponse: Future[WSResponse] = complexRequest.get()
+  //Last tweets on the user_timeline
+  val requestTimeline: WSRequest = ws.url("https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name="+screenName+"&count=1&exclude_replies=true")
 
-  futureResponse onComplete {
-    case Success(res) => println(res.body)
+  //Request userTimeline
+  val complexRequestTimeline: WSRequest =
+    requestTimeline.addHttpHeaders("Authorization" -> headers )
+    .withRequestTimeout(10000.millis)
+
+  val futureResponseTimeLine: Future[WSResponse] = complexRequestTimeline.get()
+
+  futureResponseTimeLine onComplete {
+    case Success(res) => {
+
+      val lastTweet:String = res.body
+
+      //Get the id of the last tweet
+      val userTimeline: List[JsValue] = Json.parse(lastTweet).as[List[JsValue]]
+      val tweet:JsValue = userTimeline(0)
+      val id:String = tweet("id_str").as[JsString].value
+
+      //Search tweets
+      val requestSearchTweets: WSRequest = ws.url("https://api.twitter.com/1.1/search/tweets.json?q="+screenName+"&count=100&result_type=mixed")
+
+      val complexRequestSearchTweets: WSRequest =
+
+        requestSearchTweets.addHttpHeaders("Authorization" -> headers )
+        .withRequestTimeout(10000.millis)
+
+      val futureResponseSearchTweets: Future[WSResponse] = complexRequestSearchTweets.get()
+
+      futureResponseSearchTweets onComplete {
+        case Success(res) => {
+
+          val tweets:String = res.body
+          val searchReponse:JsObject= Json.parse(tweets).as[JsObject]
+          val tweetsUser:List[JsValue] = searchReponse("statuses").as[List[JsValue]]
+
+          //Keep only tweets with "in_reply_to_status_id_str"
+          val tweetsUserFiltred = tweetsUser.filter(x => (x \ "in_reply_to_status_id_str").asOpt[String].isDefined)
+
+          //print(tweetsUserFiltred)
+
+          //Get all the replies of the specified tweet
+          val replies = tweetsUserFiltred.filter(x => x("in_reply_to_status_id_str").as[JsString].value==id)
+            .map(x => x("text").as[JsString].value )
+
+          print(replies)
+
+        }
+        case Failure(ex) => println(ex)
+      }
+    }
     case Failure(ex) => println(ex)
   }
 }
