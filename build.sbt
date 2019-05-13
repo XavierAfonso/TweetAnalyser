@@ -12,6 +12,7 @@ scalaVersion := "2.12.2"
 
 libraryDependencies ++= Seq( jdbc , ehcache , ws , specs2 % Test , guice )
 
+
 unmanagedResourceDirectories in Test <+=  baseDirectory ( _ /"target/web/public/test" )
 
 //libraryDependencies ++= Seq("com.softwaremill.sttp" %% "core" % "1.5.16")
