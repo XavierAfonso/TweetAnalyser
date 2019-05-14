@@ -4,12 +4,11 @@ import javax.inject._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import javax.inject.Inject
-
 import play.api.mvc._
 import play.api.libs.ws._
-
 import play.api.Logger
 import play.api.libs.json._
+import repositories.TweetRepository
 import services.TwitterClientService
 
 case class HttpBinResponse(origin: String, headers: Map[String, String])
@@ -20,7 +19,10 @@ case class HttpBinResponse(origin: String, headers: Map[String, String])
  * application's home page.
  */
 @Singleton
-class TwitterAnalysisController @Inject()(cc: ControllerComponents, ws: WSClient, twitterService: TwitterClientService) extends AbstractController(cc) {
+class TwitterAnalysisController @Inject()(cc: ControllerComponents,
+                                          twitterRepository: TweetRepository,
+                                          ws: WSClient,
+                                          twitterService: TwitterClientService) extends AbstractController(cc) {
 
   println(this.getClass().getName)
   val logger: Logger = Logger(this.getClass())
