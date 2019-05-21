@@ -12,7 +12,7 @@ services:
       MYSQL_DATABASE: scalaProject
       MYSQL_USER: scalaProject
       MYSQL_PASSWORD: scalaProject
-      MYSQL_ROOT_PASSWORD: scalaProject
+      MYSQL_ROOT_PASSWORD: root
         
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:4.7
