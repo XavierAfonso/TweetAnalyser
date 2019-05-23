@@ -16,13 +16,52 @@ import play.api.libs.json._
 import repositories._
 import models._
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future, Promise}
 import scala.util.Try
 
 class TwitterClientService @Inject() (ws: WSClient,
                                       twitterRepository: TweetRepository) {
 
   val logger: Logger = Logger(this.getClass)
+  val token: String  = ConfigFactory.load().getString("env.token")
+  val headers: String = "Bearer " + token
+
+  // Get the tweets
+  def getTweets (n : Int, twitterAccountName: String):List[JsObject]= {
+
+    val prom = Promise[List[JsObject]]()
+
+    def loop(cpt:Int,request:String, acc:List[JsObject]):Future[List[JsObject]]={
+
+      cpt match {
+
+        case 0 => prom.success(acc).future
+        case _ => {
+
+          val requestSearchTweets: WSRequest = ws.url("https://api.twitter.com/1.1/search/tweets.json"+request+"&tweet_mode=extended")
+
+          val complexRequestSearchTweets: WSRequest =
+            requestSearchTweets.addHttpHeaders("Authorization" -> headers )
+              .withRequestTimeout(10000.millis)
+
+          complexRequestSearchTweets.get().map( res => {
+
+             val tweets: String = res.body
+             val searchReponse: JsObject = Json.parse(tweets).as[JsObject]
+             val tweetsUser: JsObject = searchReponse("search_metadata").as[JsObject]
+             val nextResults: String = tweetsUser("next_results").as[JsString].value
+             return loop(cpt - 1, nextResults, searchReponse :: acc)
+          })
+        }
+      }
+    }
+
+
+    val request : String = "?q="+twitterAccountName+"&count=100&result_type=recent&tweet_mode=extended"
+    loop(n,request,Nil)
+    Await.result(prom.future, Duration.Inf)
+   // prom.future
+  }
 
   def anaylze(twitterAccountName: String) = {
     val token: String  = ConfigFactory.load().getString("env.token")
@@ -33,7 +72,7 @@ class TwitterClientService @Inject() (ws: WSClient,
     ws.url("https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=" + twitterAccountName + "&count=500&exclude_replies=true&include_rts=false")
       .addHttpHeaders("Authorization" -> headers )
       .get()
-      .flatMap {
+      .map {
         response => {
           val lastTweet:String = response.body
 
@@ -47,13 +86,29 @@ class TwitterClientService @Inject() (ws: WSClient,
           // Search tweets
           val requestSearchTweets: WSRequest = ws.url("https://api.twitter.com/1.1/search/tweets.json?q="+twitterAccountName+"&count=500&result_type=recent&tweet_mode=extended&include_rts=false")
 
-          val complexRequestSearchTweets: WSRequest =
-            requestSearchTweets.addHttpHeaders("Authorization" -> headers )
-              .withRequestTimeout(10000.millis)
+          val nbPage : Int = 3
+          val data: List[JsObject] = getTweets(nbPage,twitterAccountName)
 
-          complexRequestSearchTweets.get().map(
+          // Save the original tweet
+          val original_tweet: Tweet = Tweet(id.toLong, id.toLong, tweet("text").as[JsString].value,
+          new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime),
+          new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime))
+
+          logger.debug(s"Tweet object: $original_tweet")
+
+          val tweet_creation = Try(Await.result(twitterRepository.insert(original_tweet), Duration.Inf))
+          tweet_creation match {
+            case scala.util.Success(value) =>
+              logger.debug(s"Correctly saved the tweet with id: ${original_tweet.tweet_id}")
+          }
+
+          twitterRepository
+          .listAll
+          .foreach(x => logger.debug("GOT tweet: " + x.toString() + "\n"))
+
+          data.flatMap(
             related_tweets => {
-              val tweets: String = related_tweets.body
+              val tweets: String = related_tweets.toString()
               val searchReponse: JsObject= Json.parse(tweets).as[JsObject]
               val tweetsUser: List[JsValue] = searchReponse("statuses").as[List[JsValue]]
 
@@ -71,27 +126,10 @@ class TwitterClientService @Inject() (ws: WSClient,
               logger.debug(s"Tweet: $tweet")
               logger.debug(s"Replies: $replies")
 
-              // Save the original tweet
-              val original_tweet: Tweet = Tweet(id.toLong, id.toLong, tweet("text").as[JsString].value,
-                new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime),
-                new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime))
-              logger.debug(s"Tweet object: $original_tweet")
-
-              val tweet_creation = Try(Await.result(twitterRepository.insert(original_tweet), Duration.Inf))
-              tweet_creation match {
-                case scala.util.Success(value) =>
-                  logger.debug(s"Correctly saved the tweet with id: ${original_tweet.tweet_id}")
-              }
-
-              twitterRepository
-                .listAll
-                .foreach(x => logger.debug("GOT tweet: " + x.toString() + "\n"))
-
               replies
             }
           )
         }
       }
   }
-
 }
