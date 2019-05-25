@@ -19,12 +19,28 @@ import models._
 import scala.concurrent.{Await, Future, Promise}
 import scala.util.Try
 
+import SentimentAnalyzer._
+
 class TwitterClientService @Inject() (ws: WSClient,
                                       twitterRepository: TweetRepository) {
 
   val logger: Logger = Logger(this.getClass)
   val token: String  = ConfigFactory.load().getString("env.token")
   val headers: String = "Bearer " + token
+
+
+  def analyseSentiment(input : String):String = {
+    val sentiment = SentimentAnalyzer.mainSentiment(input)
+
+    sentiment match {
+
+      case Sentiment.VERY_NEGATIVE => "Very Negative"
+      case Sentiment.NEGATIVE => "Negative"
+      case Sentiment.NEUTRAL => "Neutral"
+      case Sentiment.POSITIVE => "Positive"
+      case Sentiment.VERY_POSITIVE => "Very Positive"
+    }
+  }
 
   // Get the tweets
   def getTweets (n : Int, twitterAccountName: String):List[JsObject]= {
@@ -66,6 +82,8 @@ class TwitterClientService @Inject() (ws: WSClient,
   def anaylze(twitterAccountName: String) = {
     val token: String  = ConfigFactory.load().getString("env.token")
     val headers: String = "Bearer " + token
+
+    analyseSentiment("Dhoni laments bowling, fielding errors in series loss")
 
     logger.debug(s"Authentication with Bearer token: $headers")
 
@@ -121,7 +139,10 @@ class TwitterClientService @Inject() (ws: WSClient,
 
               val replies = tweetsUserFiltred
                 .filter(x => x("in_reply_to_status_id_str").as[JsString].value==id)
-                .map(x => x("full_text").as[JsString].value )
+                .map(x => x("full_text").as[JsString].value.toString )
+                .map(x => x.split("\\s+").filterNot(_.head=='@').mkString(" "))
+                .filter(_.isEmpty == false)
+                .map(x => (x,analyseSentiment(x)))
 
               logger.debug(s"Tweet: $tweet")
               logger.debug(s"Replies: $replies")

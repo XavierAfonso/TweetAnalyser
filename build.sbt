@@ -25,11 +25,14 @@ unmanagedResourceDirectories in Test <+=  baseDirectory ( _ /"target/web/public/
 
 //libraryDependencies ++= Seq("com.softwaremill.sttp" %% "core" % "1.5.16")
 
-libraryDependencies ++= List(
+/*libraryDependencies ++= List(
   "com.softwaremill.sttp" %% "akka-http-backend" % "1.5.16",
   "com.softwaremill.sttp" %% "json4s" % "1.5.16",
   "org.json4s" %% "json4s-native" % "3.6.0"
-)
+)*/
+
+
+libraryDependencies += "edu.stanford.nlp" % "stanford-corenlp" % "3.5.2" artifacts (Artifact("stanford-corenlp", "models"), Artifact("stanford-corenlp"))
 
 libraryDependencies += ws
 
