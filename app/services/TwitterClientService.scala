@@ -16,28 +16,26 @@ import play.api.libs.json._
 import repositories._
 import models._
 
-import SentimentAnalyzer._
 
 import scala.concurrent.{Await, Future, Promise}
 import scala.util.Try
 
 class TwitterClientService @Inject() (ws: WSClient,
-                                      twitterRepository: TweetRepository) {
+                                      twitterRepository: TweetRepository,
+                                      twitterResponseRepository: TweetResponseRepository) {
 
   val logger: Logger = Logger(this.getClass)
   val token: String  = ConfigFactory.load().getString("env.token")
   val headers: String = "Bearer " + token
 
-  def analyseSentiment(input : String):String = {
+  def analyseSentiment(input : String):Int = {
     val sentiment = SentimentAnalyzer.mainSentiment(input)
-
     sentiment match {
-
-      case Sentiment.VERY_NEGATIVE => "Very Negative"
-      case Sentiment.NEGATIVE => "Negative"
-      case Sentiment.NEUTRAL => "Neutral"
-      case Sentiment.POSITIVE => "Positive"
-      case Sentiment.VERY_POSITIVE => "Very Positive"
+      case Sentiment.VERY_NEGATIVE => 0
+      case Sentiment.NEGATIVE => 1
+      case Sentiment.NEUTRAL => 2
+      case Sentiment.POSITIVE => 3
+      case Sentiment.VERY_POSITIVE => 4
     }
   }
 
@@ -148,22 +146,26 @@ class TwitterClientService @Inject() (ws: WSClient,
 
               val mapped_replies = replies.map(x => x("full_text").as[JsString].value )
 
-              for (reply <- replies) {
-                // Save tweet responses and analyze each of them
-                val tweet_text = reply("full_text").as[JsString].value
+              /**
+                * Analyze sentiment of each response and persist them
+                */
+              for (reply <- replies; if (reply \ "full_text").isDefined) {
+                // Analyze each response of the tweet and store it
+                val tweet_text = reply("full_text").as[JsString].value.toString.replaceAll("[^\u0000-\uFFFF]", "")
+                val sentiment = analyseSentiment(tweet_text)
 
-                val tweet_response: TweetResponse = models.TweetResponse(id.toLong, id.toLong, reply("full_text").as[JsString].value,
+                // Persist the tweet response
+                val tweet_response: TweetResponse = models.TweetResponse(id.toLong, id.toLong, tweet_text,
                   new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime),
-                  new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime), "Neutral", original_tweet.tweet_id)
+                  new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime), sentiment, original_tweet.tweet_id)
 
-                logger.debug(s"Tweet object: $original_tweet")
-
-                val tweet_creation = Try(Await.result(twitterRepository.insert(original_tweet), Duration.Inf))
-                tweet_creation match {
+                val tweet_response_creation = Try(Await.result(twitterResponseRepository.insert(tweet_response), Duration.Inf))
+                tweet_response_creation match {
                   case scala.util.Success(value) =>
                     logger.debug(s"Correctly saved the tweet with id: ${original_tweet.tweet_id}")
                 }
-                println(s"reply: $reply")
+                logger.debug(s"Found one reply: $reply")
+
               }
 
               logger.debug(s"Tweet: $tweet")

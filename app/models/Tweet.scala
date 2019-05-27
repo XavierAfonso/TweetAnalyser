@@ -16,13 +16,13 @@ case class Tweet(tweet_id: Long, author_id: Long, full_text: String, created_at:
 
 class TweetTableDef(tag: Tag) extends Table[Tweet](tag, "tweets") {
 
-  def tweet_id = column[Long]("tweet_id", O.PrimaryKey,O.AutoInc)
-  def author_id = column[Long]("author_id")
+  def id = column[Long]("id", O.PrimaryKey,O.AutoInc)
+  def tweet_id = column[Long]("tweet_id")
   def full_text = column[String]("full_text")
   def created_at = column[Timestamp]("created_at")
   def analyzed_at = column[Timestamp]("analyzed_at")
   def avg_sentiment = column[String]("avg_sentiment")
 
-  override def * = (tweet_id, author_id, full_text, created_at, analyzed_at, avg_sentiment) <> ((Tweet.apply _).tupled, Tweet.unapply)
+  override def * = (id, tweet_id, full_text, created_at, analyzed_at, avg_sentiment) <> ((Tweet.apply _).tupled, Tweet.unapply)
 }
 
