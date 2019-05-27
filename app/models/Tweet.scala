@@ -12,8 +12,7 @@ import play.api.db.slick.DatabaseConfigProvider
 import play.api.db.slick.HasDatabaseConfigProvider
 import slick.jdbc.JdbcProfile
 
-
-case class Tweet(tweet_id: Long, author_id: Long, full_text: String, created_at: Timestamp, analyzed_at: Timestamp)
+case class Tweet(tweet_id: Long, author_id: Long, full_text: String, created_at: Timestamp, analyzed_at: Timestamp, avg_sentiment: String)
 
 class TweetTableDef(tag: Tag) extends Table[Tweet](tag, "tweets") {
 
@@ -22,8 +21,8 @@ class TweetTableDef(tag: Tag) extends Table[Tweet](tag, "tweets") {
   def full_text = column[String]("full_text")
   def created_at = column[Timestamp]("created_at")
   def analyzed_at = column[Timestamp]("analyzed_at")
+  def avg_sentiment = column[String]("avg_sentiment")
 
-  override def * = (tweet_id, author_id, full_text, created_at, analyzed_at) <> ((Tweet.apply _).tupled, Tweet.unapply)
-
-
+  override def * = (tweet_id, author_id, full_text, created_at, analyzed_at, avg_sentiment) <> ((Tweet.apply _).tupled, Tweet.unapply)
 }
+

@@ -51,15 +51,14 @@ class TwitterClientService @Inject() (ws: WSClient,
             val tweetsUser: JsObject = searchReponse("search_metadata").as[JsObject]
             var nextResults: String = ""
 
-            if((tweetsUser \ "next_results").isDefined){
+            if ((tweetsUser \ "next_results").isDefined) {
               nextResults = tweetsUser("next_results").as[JsString].value
             }
 
             //No more next, need to stop here
-            if(nextResults==""){
+            if (nextResults=="") {
               return loop(0, "", acc)
-            }
-            else{
+            } else {
               return loop(cpt - 1, nextResults, searchReponse :: acc)
             }
           })
@@ -96,13 +95,13 @@ class TwitterClientService @Inject() (ws: WSClient,
           // Search tweets
           val requestSearchTweets: WSRequest = ws.url("https://api.twitter.com/1.1/search/tweets.json?q="+twitterAccountName+"&count=500&result_type=recent&tweet_mode=extended&include_rts=false")
 
-          val nbPage : Int = 3
+          val nbPage : Int = 10
           val data: List[JsObject] = getTweets(nbPage,twitterAccountName)
 
           // Save the original tweet
           val original_tweet: Tweet = Tweet(id.toLong, id.toLong, tweet("text").as[JsString].value,
           new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime),
-          new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime))
+          new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime), "Neutral")
 
           logger.debug(s"Tweet object: $original_tweet")
 
@@ -131,12 +130,31 @@ class TwitterClientService @Inject() (ws: WSClient,
 
               val replies = tweetsUserFiltred
                 .filter(x => x("in_reply_to_status_id_str").as[JsString].value==id)
-                .map(x => x("full_text").as[JsString].value )
+
+              val mapped_replies = replies.map(x => x("full_text").as[JsString].value )
+
+              for (reply <- replies) {
+                // Save tweet responses and analyze each of them
+                val tweet_text = reply("full_text").as[JsString].value
+
+                val tweet_response: TweetResponse = models.TweetResponse(id.toLong, id.toLong, reply("full_text").as[JsString].value,
+                  new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime),
+                  new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime), "Neutral", original_tweet.tweet_id)
+
+                logger.debug(s"Tweet object: $original_tweet")
+
+                val tweet_creation = Try(Await.result(twitterRepository.insert(original_tweet), Duration.Inf))
+                tweet_creation match {
+                  case scala.util.Success(value) =>
+                    logger.debug(s"Correctly saved the tweet with id: ${original_tweet.tweet_id}")
+                }
+                println(s"reply: $reply")
+              }
 
               logger.debug(s"Tweet: $tweet")
               logger.debug(s"Replies: $replies")
 
-              replies
+              mapped_replies
             }
           )
         }
