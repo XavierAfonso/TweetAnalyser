@@ -35,6 +35,8 @@ libraryDependencies += ws
 
 libraryDependencies += ehcache
 
+libraryDependencies += "edu.stanford.nlp" % "stanford-corenlp" % "3.5.2" artifacts (Artifact("stanford-corenlp", "models"), Artifact("stanford-corenlp"))
+
 
 
 

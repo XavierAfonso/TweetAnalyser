@@ -16,6 +16,8 @@ import play.api.libs.json._
 import repositories._
 import models._
 
+import SentimentAnalyzer._
+
 import scala.concurrent.{Await, Future, Promise}
 import scala.util.Try
 
@@ -25,6 +27,19 @@ class TwitterClientService @Inject() (ws: WSClient,
   val logger: Logger = Logger(this.getClass)
   val token: String  = ConfigFactory.load().getString("env.token")
   val headers: String = "Bearer " + token
+
+  def analyseSentiment(input : String):String = {
+    val sentiment = SentimentAnalyzer.mainSentiment(input)
+
+    sentiment match {
+
+      case Sentiment.VERY_NEGATIVE => "Very Negative"
+      case Sentiment.NEGATIVE => "Negative"
+      case Sentiment.NEUTRAL => "Neutral"
+      case Sentiment.POSITIVE => "Positive"
+      case Sentiment.VERY_POSITIVE => "Very Positive"
+    }
+  }
 
   // Get the tweets
   def getTweets (n : Int, twitterAccountName: String):List[JsObject]= {
