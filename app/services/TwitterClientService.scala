@@ -46,17 +46,27 @@ class TwitterClientService @Inject() (ws: WSClient,
 
           complexRequestSearchTweets.get().map( res => {
 
-             val tweets: String = res.body
-             val searchReponse: JsObject = Json.parse(tweets).as[JsObject]
-             val tweetsUser: JsObject = searchReponse("search_metadata").as[JsObject]
-             val nextResults: String = tweetsUser("next_results").as[JsString].value
-             return loop(cpt - 1, nextResults, searchReponse :: acc)
+            val tweets: String = res.body
+            val searchReponse: JsObject = Json.parse(tweets).as[JsObject]
+            val tweetsUser: JsObject = searchReponse("search_metadata").as[JsObject]
+            var nextResults: String = ""
+
+            if((tweetsUser \ "next_results").isDefined){
+              nextResults = tweetsUser("next_results").as[JsString].value
+            }
+
+            //No more next, need to stop here
+            if(nextResults==""){
+              return loop(0, "", acc)
+            }
+            else{
+              return loop(cpt - 1, nextResults, searchReponse :: acc)
+            }
           })
         }
       }
     }
-
-
+    
     val request : String = "?q="+twitterAccountName+"&count=100&result_type=recent&tweet_mode=extended"
     loop(n,request,Nil)
     Await.result(prom.future, Duration.Inf)
