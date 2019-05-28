@@ -131,7 +131,7 @@ class TwitterClientService @Inject() (ws: WSClient,
           data.flatMap(
             related_tweets => {
               val tweets: String = related_tweets.toString()
-              val searchReponse: JsObject= Json.parse(tweets).as[JsObject]
+              val searchReponse: JsObject = Json.parse(tweets).as[JsObject]
               val tweetsUser: List[JsValue] = searchReponse("statuses").as[List[JsValue]]
 
               // Keep only tweets with "in_reply_to_status_id_str"
@@ -142,9 +142,11 @@ class TwitterClientService @Inject() (ws: WSClient,
               tweetsUserFiltred.map(x => logger.debug(x("in_reply_to_status_id_str").as[JsString] + "is same as " + id))
 
               val replies = tweetsUserFiltred
-                .filter(x => x("in_reply_to_status_id_str").as[JsString].value==id)
+                .filter(x => x("in_reply_to_status_id_str").as[JsString].value == id)
 
-              val mapped_replies = replies.map(x => x("full_text").as[JsString].value )
+              val mapped_replies = replies.map(x => x("full_text").as[JsString].value)
+                .map(x => x.split("\\s+").filterNot(_.head == '@').mkString(" "))
+                .filter(_.isEmpty == false)
 
               /**
                 * Analyze sentiment of each response and persist them
@@ -152,10 +154,17 @@ class TwitterClientService @Inject() (ws: WSClient,
               for (reply <- replies; if (reply \ "full_text").isDefined) {
                 // Analyze each response of the tweet and store it
                 val tweet_text = reply("full_text").as[JsString].value.toString.replaceAll("[^\u0000-\uFFFF]", "")
+                  .split("\\s+").filterNot(_.head == '@').mkString(" ")
+
+
+                if (!tweet_text.isEmpty) {
+
+                val idReponse: String = reply("id_str").as[JsString].value
+
                 val sentiment = analyseSentiment(tweet_text)
 
                 // Persist the tweet response
-                val tweet_response: TweetResponse = models.TweetResponse(id.toLong, id.toLong, tweet_text,
+                val tweet_response: TweetResponse = models.TweetResponse(idReponse.toLong, idReponse.toLong, tweet_text,
                   new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime),
                   new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime), sentiment, original_tweet.tweet_id)
 
@@ -167,6 +176,7 @@ class TwitterClientService @Inject() (ws: WSClient,
                 logger.debug(s"Found one reply: $reply")
 
               }
+            }
 
               logger.debug(s"Tweet: $tweet")
               logger.debug(s"Replies: $replies")
