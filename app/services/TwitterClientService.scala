@@ -121,7 +121,7 @@ class TwitterClientService @Inject() (ws: WSClient,
           val tweet_creation = Try(Await.result(twitterRepository.insert(original_tweet), Duration.Inf))
           tweet_creation match {
             case scala.util.Success(value) =>
-              logger.debug(s"Correctly saved the tweet with id: ${original_tweet.tweet_id}")
+              logger.debug(s"Correctly saved the tweet with id: ${original_tweet.id}")
           }
 
           twitterRepository
@@ -168,12 +168,12 @@ class TwitterClientService @Inject() (ws: WSClient,
                   // Persist the tweet response
                   val tweet_response: TweetResponse = models.TweetResponse(idReponse.toLong, author_response, idReponse.toLong, tweet_text,
                     new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime),
-                    new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime), sentiment, original_tweet.tweet_id)
+                    new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime), sentiment, original_tweet.id)
 
                   val tweet_response_creation = Try(Await.result(twitterResponseRepository.insert(tweet_response), Duration.Inf))
                   tweet_response_creation match {
                     case scala.util.Success(value) =>
-                      logger.debug(s"Correctly saved the tweet with id: ${original_tweet.tweet_id}")
+                      logger.debug(s"Correctly saved the tweet with id: ${original_tweet.id}")
                   }
                   logger.debug(s"Found one reply: $reply")
 

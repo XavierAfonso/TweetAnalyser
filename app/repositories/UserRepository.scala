@@ -23,6 +23,10 @@ class UserRepository @Inject()(protected val dbConfigProvider: DatabaseConfigPro
     db.run(users.filter(_.id === user_id).result.headOption)
   }
 
+  def findByEmail(email: String): Future[Option[User]] = {
+    db.run(users.filter(_.email === email).result.headOption)
+  }
+
   def listAll: Future[Seq[User]] = {
     db.run(users.result)
   }

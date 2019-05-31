@@ -4,6 +4,7 @@ import javax.inject._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import javax.inject.Inject
+import pdi.jwt.JwtUtils
 import play.api.mvc._
 import play.api.libs.ws._
 import play.api.Logger
@@ -38,11 +39,12 @@ class TwitterAnalysisController @Inject()(cc: ControllerComponents,
   }
 
 
-  def analyze(twitterAccountName: String = "@lemondefr") = Action.async {
-    logger.info("In analyze endpoint")
-    twitterService.anaylze(twitterAccountName).map(res => {
-      Ok(Json.toJson(res))
-    })
+  def analyze(twitterAccountName: String = "@lemondefr") = Action.async { request =>
+      logger.info("In analyze endpoint")
+      twitterService.anaylze(twitterAccountName).map(res => {
+        Ok(Json.toJson(res))
+      })
+
   }
 
 }

@@ -3,6 +3,10 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
+# Users
+GET     /user/login             controllers.UserController.login(email: String, password: String)
+GET     /user/me                controllers.UserController.me()
+
 # An example controller showing a sample home page
 GET     /tweet/:tweetId           controllers.TwitterAnalysisController.analyze(tweetId: String)
 # An example controller showing how to use dependency injection
