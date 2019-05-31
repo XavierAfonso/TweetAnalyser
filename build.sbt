@@ -30,7 +30,8 @@ unmanagedResourceDirectories in Test <+=  baseDirectory ( _ /"target/web/public/
 libraryDependencies ++= List(
   "com.softwaremill.sttp" %% "akka-http-backend" % "1.5.16",
   "com.softwaremill.sttp" %% "json4s" % "1.5.16",
-  "org.json4s" %% "json4s-native" % "3.6.0"
+  "org.json4s" %% "json4s-native" % "3.6.0",
+  "com.typesafe.play" %% "play-json" % "2.7.2"
 )
 
 libraryDependencies += ws

@@ -5,6 +5,7 @@
 
 # Users
 GET     /user/login             controllers.UserController.login(email: String, password: String)
+GET     /user/register          controllers.UserController.register(email: String, password: String)
 GET     /user/me                controllers.UserController.me()
 
 # An example controller showing a sample home page

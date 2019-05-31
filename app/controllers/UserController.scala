@@ -1,20 +1,20 @@
 package controllers
 
-import javax.inject._
+import java.sql.Timestamp
+import java.time.Instant
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import javax.inject._
 import javax.inject.Inject
-import pdi.jwt.JwtUtils
+import models.User
 import play.api.mvc._
-import play.api.libs.ws._
 import play.api.Logger
 import play.api.libs.json._
 import repositories.{TweetRepository, UserRepository}
-import services.TwitterClientService
-import controllers.JwtUtility
 import org.mindrot.jbcrypt.BCrypt
 
-
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
+import scala.util.Try
 
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -25,27 +25,47 @@ class UserController @Inject()(cc: ControllerComponents,
                                userRepository: UserRepository) extends AbstractController(cc) {
 
   println(this.getClass().getName)
+  val ec = scala.concurrent.ExecutionContext.Implicits.global
+
   val logger: Logger = Logger(this.getClass())
+  implicit val userWrites = new Writes[User] {
+    def writes(user: User) = Json.obj(
+      "email" -> user.email,
+      "created_at" -> user.created_at
+    )
+  }
 
-
-  def login(email: String, password: String) = Action { request =>
-    println("test")
-    userRepository.findByEmail(email).map {
-      case None => NotFound(Json.obj("error" -> "Not Found")))
+  def login(email: String, password: String) = Action.async { request =>
+    userRepository.get(email).map {
+      case None => NotFound(Json.obj("error" -> "User not found."))
       case Some(user) => {
-        //Ok(Json.obj("result" -> thing)))
-        BCrypt.checkpw(password, user.password)
+        if (BCrypt.checkpw(password, user.password)) {
+          logger.info(s"User ${user.email} correctly logged in")
+          Ok(Json.obj("token" -> JwtUtility.authenticate(user)))
+        } else {
+          Unauthorized("Credentials doesn't match our records.")
+        }
       }
-    }
-
-    val passwordHash = BCrypt.hashpw(password, BCrypt.gensalt)
-    user.value
-    val res = JwtUtility.verifyJwt(request)
-    Ok(s"ok => ${res}")
+    }(ec)
   }
 
-  def me() = Action { request =>
-    Ok("ok")
+  def me = Action.async { request =>
+    Future {
+      val user = userRepository.get(JwtUtility.getUser(request)).value
+      if (user.isDefined)
+        Ok(Json.toJson(user))
+      else
+        Ok("Error")
+    }(ec)
   }
 
+  def register(email: String, password: String) = Action.async {
+    val user = User(email, BCrypt.hashpw(password, BCrypt.gensalt(10)), Timestamp.from(Instant.now()))
+    userRepository.insert(user).map( _ =>
+      JwtUtility.authenticate(user))(ec).map(token => {
+        logger.info(s"User ${user.email} registered logged in")
+        Ok(Json.obj("token" -> token))
+      }
+    )(ec)
+  }
 }
