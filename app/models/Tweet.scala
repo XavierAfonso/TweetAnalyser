@@ -12,7 +12,7 @@ import play.api.db.slick.DatabaseConfigProvider
 import play.api.db.slick.HasDatabaseConfigProvider
 import slick.jdbc.JdbcProfile
 
-case class Tweet(tweet_id: Long, author_screen_name: String, author_id: Long, full_text: String, created_at: Timestamp, analyzed_at: Timestamp, avg_sentiment: String)
+case class Tweet(id: Long, author_screen_name: String, author_id: Long, full_text: String, created_at: Timestamp, analyzed_at: Timestamp, avg_sentiment: String)
 
 class TweetTableDef(tag: Tag) extends Table[Tweet](tag, "tweets") {
 

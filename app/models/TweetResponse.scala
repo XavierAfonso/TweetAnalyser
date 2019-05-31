@@ -6,7 +6,7 @@ import slick.lifted.Tag
 import slick.jdbc.MySQLProfile.api._
 
 
-case class TweetResponse(tweet_id: Long, author_screen_name: String, author_id: Long, full_text: String, created_at: Timestamp, analyzed_at: Timestamp, sentiment: Int, fk_tweet: Long)
+case class TweetResponse(id: Long, author_screen_name: String, author_id: Long, full_text: String, created_at: Timestamp, analyzed_at: Timestamp, sentiment: Int, fk_tweet: Long)
 
 class TweetResponseTableDef(tag: Tag) extends Table[TweetResponse](tag, "tweet_responses") {
 
