@@ -1,15 +1,22 @@
 package controllers
 
 import models.User
-import play.api.mvc.RequestHeader
+import play.api.mvc.{Action, RequestHeader, Result}
 import play.api.libs.json.{JsObject, JsValue, Json}
 import pdi.jwt.{JwtAlgorithm, JwtJson}
+import play.api.mvc.Results.Unauthorized
+
 
 object JwtUtility {
 
   val secret: String = "JwtSecret"
   val auth_type: String = "Bearer"
   val algo = JwtAlgorithm.HS256
+
+  def mustBeAuthenticated(implicit req: RequestHeader) = {
+    if (!verifyJwt(req))
+      Unauthorized("You must be logged in")
+  }
 
   def verifyJwt(implicit req: RequestHeader): Boolean = {
     val jwt_token = getJwtToken(req)

@@ -19,6 +19,7 @@ class UserRepository @Inject()(protected val dbConfigProvider: DatabaseConfigPro
     db.run(users += user).map(_ => ())
 
   def get(email: String): Future[Option[User]] = {
+    println(s"Email provided ${email}")
     db.run(users.filter(_.email.trim.toLowerCase === email.trim.toLowerCase()).result.headOption)
   }
 

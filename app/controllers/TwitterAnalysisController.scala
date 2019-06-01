@@ -40,11 +40,11 @@ class TwitterAnalysisController @Inject()(cc: ControllerComponents,
 
 
   def analyze(twitterAccountName: String = "@lemondefr") = Action.async { request =>
-      logger.info("In analyze endpoint")
-      twitterService.anaylze(twitterAccountName).map(res => {
-        Ok(Json.toJson(res))
-      })
-
+    logger.info("In analyze endpoint")
+    JwtUtility.mustBeAuthenticated(request)
+    twitterService.anaylze(twitterAccountName).map(res => {
+      Ok(Json.toJson(res))
+    })
   }
 
 }

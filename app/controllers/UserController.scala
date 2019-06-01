@@ -24,7 +24,6 @@ import scala.util.Try
 class UserController @Inject()(cc: ControllerComponents,
                                userRepository: UserRepository) extends AbstractController(cc) {
 
-  println(this.getClass().getName)
   val ec = scala.concurrent.ExecutionContext.Implicits.global
 
   val logger: Logger = Logger(this.getClass())
@@ -49,15 +48,6 @@ class UserController @Inject()(cc: ControllerComponents,
     }(ec)
   }
 
-  def me = Action.async { request =>
-    Future {
-      val user = userRepository.get(JwtUtility.getUser(request)).value
-      if (user.isDefined)
-        Ok(Json.toJson(user))
-      else
-        Ok("Error")
-    }(ec)
-  }
 
   def register(email: String, password: String) = Action.async {
     val user = User(email, BCrypt.hashpw(password, BCrypt.gensalt(10)), Timestamp.from(Instant.now()))
