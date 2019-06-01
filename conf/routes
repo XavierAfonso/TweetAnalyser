@@ -8,7 +8,13 @@ GET     /user/login             controllers.UserController.login(email: String, 
 GET     /user/register          controllers.UserController.register(email: String, password: String)
 
 # An example controller showing a sample home page
-GET     /tweet/:tweetId           controllers.TwitterAnalysisController.analyze(tweetId: String)
+GET     /tweet                     controllers.TwitterAnalysisController.analyze(tweetId: String)
+
+GET     /tweets                    controllers.TwitterAnalysisController.getTweets()
+
+GET     /tweetsResponses            controllers.TwitterAnalysisController.getTweetsResponses()
+
+
 # An example controller showing how to use dependency injection
 GET     /count                      controllers.CountController.count
 # An example controller showing how to write asynchronous code
