@@ -16,7 +16,7 @@ import play.api.libs.json._
 import repositories._
 import models._
 
-
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.{Await, Future, Promise}
 import scala.util.Try
 
@@ -27,6 +27,7 @@ class TwitterClientService @Inject() (ws: WSClient,
   val logger: Logger = Logger(this.getClass)
   val token: String  = ConfigFactory.load().getString("env.token")
   val headers: String = "Bearer " + token
+
 
   def analyseSentiment(input : String):Int = {
     val sentiment = SentimentAnalyzer.mainSentiment(input)
@@ -148,6 +149,8 @@ class TwitterClientService @Inject() (ws: WSClient,
                 .map(x => x.split("\\s+").filterNot(_.head == '@').mkString(" "))
                 .filter(_.isEmpty == false)
 
+              var lst_tweet_response = new ListBuffer[TweetResponse]()
+
               /**
                 * Analyze sentiment of each response and persist them
                 */
@@ -170,6 +173,8 @@ class TwitterClientService @Inject() (ws: WSClient,
                     new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime),
                     new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime), sentiment, original_tweet.id)
 
+                  lst_tweet_response += tweet_response
+
                   val tweet_response_creation = Try(Await.result(twitterResponseRepository.insert(tweet_response), Duration.Inf))
                   tweet_response_creation match {
                     case scala.util.Success(value) =>
@@ -183,7 +188,8 @@ class TwitterClientService @Inject() (ws: WSClient,
               logger.debug(s"Tweet: $tweet")
               logger.debug(s"Replies: $replies")
 
-              mapped_replies
+              //mapped_replies
+              lst_tweet_response
             }
           )
         }

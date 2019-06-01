@@ -27,6 +27,7 @@ class UserController @Inject()(cc: ControllerComponents,
   val ec = scala.concurrent.ExecutionContext.Implicits.global
 
   val logger: Logger = Logger(this.getClass())
+
   implicit val userWrites = new Writes[User] {
     def writes(user: User) = Json.obj(
       "email" -> user.email,

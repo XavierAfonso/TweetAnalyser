@@ -2,6 +2,7 @@ package models
 
 import java.sql.Timestamp
 
+import play.api.libs.json.{Json, Writes}
 import slick.lifted.Tag
 import slick.jdbc.MySQLProfile.api._
 

@@ -4,6 +4,7 @@ import javax.inject._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import javax.inject.Inject
+import models.TweetResponse
 import pdi.jwt.JwtUtils
 import play.api.mvc._
 import play.api.libs.ws._
@@ -27,6 +28,9 @@ class TwitterAnalysisController @Inject()(cc: ControllerComponents,
 
   println(this.getClass().getName)
   val logger: Logger = Logger(this.getClass())
+
+  implicit val tweetResponseWrites = Json.writes[TweetResponse]
+
 
   /**
    * Create an Action to render an HTML page with a welcome message.
