@@ -20,23 +20,31 @@ class TweetRepository @Inject() (protected val dbConfigProvider: DatabaseConfigP
   def insert(tweet: Tweet): Future[Unit] =
     db.run(tweets += tweet).map(_ => ())
 
-  def get(tweet_id: Long): Future[Option[Tweet]] = {
-    db.run(tweets.filter(_.tweet_id === tweet_id).result.headOption)
+  def get(id: Long): Future[Option[Tweet]] = {
+    db.run(tweets.filter(_.id === id).result.headOption)
+  }
+
+  def getLast: Future[Option[Tweet]] = {
+    db.run(tweets.sortBy(_.id.desc).result.headOption)
   }
 
   def listAll: Future[Seq[Tweet]] = {
     db.run(tweets.result)
   }
 
+  def listAllTweetUserId(user_id:String): Future[Seq[Tweet]] = {
+    db.run(tweets.filter(_.user_id === user_id).sortBy(_.id.desc).result)
+  }
+
   def insert(_tweets: Seq[Tweet]): Future[Unit] =
     db.run(this.tweets ++= _tweets).map(_ => ())
 
-  def update(tweet_id: Long, tweet: Tweet): Future[Unit] = {
-    val tweetToUpdate: Tweet = tweet.copy(tweet_id)
+  def update(tweet_id: String, tweet: Tweet): Future[Unit] = {
+    val tweetToUpdate: Tweet = tweet.copy(tweet_id.toLong)
     db.run(tweets.filter(_.tweet_id === tweet_id).update(tweetToUpdate)).map(_ => ())
   }
 
-  def delete(tweet_id: Long): Future[Unit] =
-    db.run(tweets.filter(_.tweet_id === tweet_id).delete).map(_ => ())
+  def delete(id: Long): Future[Unit] =
+    db.run(tweets.filter(_.id === id).delete).map(_ => ())
 
 }

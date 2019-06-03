@@ -2,7 +2,7 @@ package controllers
 
 import models.User
 import play.api.mvc.{Action, RequestHeader, Result}
-import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.libs.json.{JsObject, JsString, JsValue, Json}
 import pdi.jwt.{JwtAlgorithm, JwtJson}
 import play.api.mvc.Results.Unauthorized
 
@@ -30,8 +30,14 @@ object JwtUtility {
   }
 
   def getUser(token: String): String = {
-    val json: JsValue = Json.parse(JwtJson.decode(token, secret, Seq(JwtAlgorithm.HS256)).get.content)
-    (json \\ "user").head.toString().trim
+
+    val json1: JsValue = Json.parse(JwtJson.decode(token, secret, Seq(JwtAlgorithm.HS256)).get.content)
+
+    val res = json1("user").as[JsString].value
+    res
+
+    //val json: JsValue = Json.parse(JwtJson.decode(token, secret, Seq(JwtAlgorithm.HS256)).get.content)
+    //(json \\ "user").head.toString().trim
   }
 
   def getJwtToken(implicit req: RequestHeader): String = {

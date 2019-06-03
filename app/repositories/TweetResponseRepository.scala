@@ -19,7 +19,7 @@ class TweetResponseRepository @Inject()(protected val dbConfigProvider: Database
   def insert(tweet: TweetResponse): Future[Unit] =
     db.run(tweets += tweet).map(_ => ())
 
-  def get(tweet_id: Long): Future[Option[TweetResponse]] = {
+  def get(tweet_id: String): Future[Option[TweetResponse]] = {
     db.run(tweets.filter(_.tweet_id === tweet_id).result.headOption)
   }
 
@@ -27,15 +27,22 @@ class TweetResponseRepository @Inject()(protected val dbConfigProvider: Database
     db.run(tweets.result)
   }
 
+  def listAllTweetId(id: Long): Future[Seq[TweetResponse]] = {
+    db.run(tweets.filter(_.fk_tweet === id).result)
+  }
+
   def insert(_tweets: Seq[TweetResponse]): Future[Unit] =
     db.run(this.tweets ++= _tweets).map(_ => ())
 
-  def update(tweet_id: Long, tweet: TweetResponse): Future[Unit] = {
-    val tweetToUpdate: TweetResponse = tweet.copy(tweet_id)
+  def update(tweet_id: String, tweet: TweetResponse): Future[Unit] = {
+    val tweetToUpdate: TweetResponse = tweet.copy(tweet_id.toLong)
     db.run(tweets.filter(_.tweet_id === tweet_id).update(tweetToUpdate)).map(_ => ())
   }
 
-  def delete(tweet_id: Long): Future[Unit] =
-    db.run(tweets.filter(_.tweet_id === tweet_id).delete).map(_ => ())
+  def delete(id: Long): Future[Unit] =
+    db.run(tweets.filter(_.id === id).delete).map(_ => ())
+
+  def deleteAllTweetId(id: Long): Future[Unit] =
+    db.run(tweets.filter(_.fk_tweet === id).delete).map(_ => ())
 
 }

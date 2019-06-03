@@ -14,6 +14,10 @@ import play.api.mvc.Results.Unauthorized
 import repositories.TweetRepository
 import services.TwitterClientService
 
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+import scala.util.{Failure, Success}
+
 case class HttpBinResponse(origin: String, headers: Map[String, String])
 
 import repositories.{TweetResponseRepository,TweetRepository, UserRepository}
@@ -47,11 +51,15 @@ class TwitterAnalysisController @Inject()(cc: ControllerComponents,
   }
 
 
-  def analyze(twitterAccountName: String = "@lemondefr") = Action.async { request =>
+  //twitterAccountName: String = "@lemondefr"
+  def analyze(screenName: String,mode:Long) = Action.async { request =>
     logger.info("In analyze endpoint")
     JwtUtility.mustBeAuthenticated(request)
-    twitterService.anaylze(twitterAccountName).map(res => {
-      //Ok(Json.toJson(res))
+
+
+    val user = JwtUtility.getUser(request)
+
+    twitterService.anaylze(screenName,mode,user).map(res => {
       Ok(Json.obj("response" -> "ok"))
     })
   }
@@ -64,6 +72,7 @@ class TwitterAnalysisController @Inject()(cc: ControllerComponents,
       "author_screen_name" -> tweet.author_screen_name,
       "avg_sentiment" -> tweet.avg_sentiment,
       "full_text" -> tweet.full_text,
+      "id" -> tweet.id,
     )
   }
 
@@ -73,7 +82,8 @@ class TwitterAnalysisController @Inject()(cc: ControllerComponents,
       "author_screen_name" -> response.author_screen_name,
       "full_text" -> response.full_text,
       "sentiment" -> response.sentiment,
-      "fk_tweet" -> response.fk_tweet
+      "fk_tweet" -> response.fk_tweet,
+      "id" -> response.id
     )
   }
 
@@ -84,20 +94,38 @@ class TwitterAnalysisController @Inject()(cc: ControllerComponents,
       Unauthorized("You must be logged in")
     }
 
-    twitterRepository.listAll.map(res => {
+    val user = JwtUtility.getUser(request)
+
+    twitterRepository.listAllTweetUserId(user).map(res => {
       Ok(Json.toJson(res))
     })
+
   }
 
-  def getTweetsResponses() = Action.async { request =>
+  def getTweetResponses(id:Long) = Action.async { request =>
     logger.info("In analyze endpoint")
 
     if (!JwtUtility.verifyJwt(request)) {
       Unauthorized("You must be logged in")
     }
 
-    tweetResponseRepository.listAll.map(res => {
+    tweetResponseRepository.listAllTweetId(id).map(res => {
       Ok(Json.toJson(res))
+    })
+  }
+
+  def deleteTweet(id:Long) = Action.async { request =>
+    logger.info("In analyze endpoint")
+
+    if (!JwtUtility.verifyJwt(request)) {
+      Unauthorized("You must be logged in")
+    }
+
+    twitterRepository.delete(id).flatMap(res => {
+     // Ok(Json.toJson("ok"))
+      tweetResponseRepository.deleteAllTweetId(id).map(res2 => {
+        Ok(Json.toJson("ok"))
+      })
     })
   }
 }
