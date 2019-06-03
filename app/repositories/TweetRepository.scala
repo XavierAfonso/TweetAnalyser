@@ -9,6 +9,7 @@ import play.api.db.slick.HasDatabaseConfigProvider
 import slick.jdbc.JdbcProfile
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 @Singleton
 class TweetRepository @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
@@ -40,9 +41,15 @@ class TweetRepository @Inject() (protected val dbConfigProvider: DatabaseConfigP
     db.run(this.tweets ++= _tweets).map(_ => ())
 
   def update(tweet_id: String, tweet: Tweet): Future[Unit] = {
-    val tweetToUpdate: Tweet = tweet.copy(tweet_id.toLong)
-    db.run(tweets.filter(_.tweet_id === tweet_id).update(tweetToUpdate)).map(_ => ())
+    db.run(tweets.filter(_.tweet_id === tweet_id).update(tweet)).map(_ => ())
   }
+
+  def updateSentiment(tweet: Tweet) = {
+    println(s"Received tweet ==> ${tweet}")
+    db.run(tweets.update(tweet))
+  }
+
+
 
   def delete(id: Long): Future[Unit] =
     db.run(tweets.filter(_.id === id).delete).map(_ => ())

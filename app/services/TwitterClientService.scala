@@ -120,12 +120,12 @@ class TwitterClientService @Inject() (ws: WSClient,
           }
 
 
-          val data: List[JsObject] = getTweets(nbPage,twitterAccountName)
+          val tweets_paginated: List[JsObject] = getTweets(nbPage,twitterAccountName)
 
           // Save the original tweet
           val original_tweet: Tweet = Tweet(id.toLong, twitterAccountName, id, tweet("text").as[JsString].value,
             new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime),
-            new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime), "Neutral",user)
+            new java.sql.Timestamp(new java.util.Date(tweet("created_at").as[JsString].value).getTime), "Neutral", user)
 
           logger.debug(s"Tweet object: $original_tweet")
 
@@ -147,7 +147,6 @@ class TwitterClientService @Inject() (ws: WSClient,
                 }
               }
 
-
               val what = value
               logger.debug(s"Correctly saved the tweet with id: ${original_tweet.id}")
           }
@@ -156,7 +155,7 @@ class TwitterClientService @Inject() (ws: WSClient,
             .listAll
             .foreach(x => logger.debug("GOT tweet: " + x.toString() + "\n"))
 
-          data.flatMap(
+          tweets_paginated.flatMap(
             related_tweets => {
               val tweets: String = related_tweets.toString()
               val searchReponse: JsObject = Json.parse(tweets).as[JsObject]
@@ -177,6 +176,7 @@ class TwitterClientService @Inject() (ws: WSClient,
                 .filter(_.isEmpty == false)
 
               var lst_tweet_response = new ListBuffer[TweetResponse]()
+
 
               /**
                 * Analyze sentiment of each response and persist them
@@ -211,6 +211,23 @@ class TwitterClientService @Inject() (ws: WSClient,
 
                 }
               }
+
+              // Determine sentiment avg and update the parent tweet
+              var sum_sentiments: Int = 0
+              for (response <- lst_tweet_response) {
+                sum_sentiments += response.sentiment
+              }
+              val avg_sentiment = (sum_sentiments/lst_tweet_response.size.toDouble).toString
+              val update = original_tweet.copy(avg_sentiment = avg_sentiment, id = realId)
+
+              Try(Await.result(twitterRepository.updateSentiment(update), Duration.Inf)) match {
+                case scala.util.Success(value) =>
+                  logger.debug(s"Correctly updated tweet with: ${value}")
+              }
+
+
+
+              logger.debug(s"Average sentiment of the tweet ${sum_sentiments/lst_tweet_response.size.toDouble}")
 
               logger.debug(s"Tweet: $tweet")
               logger.debug(s"Replies: $replies")
