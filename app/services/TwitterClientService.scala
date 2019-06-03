@@ -220,7 +220,7 @@ class TwitterClientService @Inject() (ws: WSClient,
               val avg_sentiment = (sum_sentiments/lst_tweet_response.size.toDouble).toString
               val update = original_tweet.copy(avg_sentiment = avg_sentiment, id = realId)
 
-              Try(Await.result(twitterRepository.updateSentiment(update), Duration.Inf)) match {
+              Try(Await.result(twitterRepository.update(update), Duration.Inf)) match {
                 case scala.util.Success(value) =>
                   logger.debug(s"Correctly updated tweet with: ${value}")
               }

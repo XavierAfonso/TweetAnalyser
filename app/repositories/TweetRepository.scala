@@ -40,16 +40,9 @@ class TweetRepository @Inject() (protected val dbConfigProvider: DatabaseConfigP
   def insert(_tweets: Seq[Tweet]): Future[Unit] =
     db.run(this.tweets ++= _tweets).map(_ => ())
 
-  def update(tweet_id: String, tweet: Tweet): Future[Unit] = {
-    db.run(tweets.filter(_.tweet_id === tweet_id).update(tweet)).map(_ => ())
-  }
-
-  def updateSentiment(tweet: Tweet) = {
-    println(s"Received tweet ==> ${tweet}")
+  def update(tweet: Tweet) = {
     db.run(tweets.update(tweet))
   }
-
-
 
   def delete(id: Long): Future[Unit] =
     db.run(tweets.filter(_.id === id).delete).map(_ => ())
