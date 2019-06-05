@@ -212,7 +212,7 @@ class TwitterClientService @Inject() (ws: WSClient,
                 }
               }
 
-              // Determine sentiment avg and update the parent tweet
+              /*// Determine sentiment avg and update the parent tweet
               var sum_sentiments: Int = 0
               for (response <- lst_tweet_response) {
                 sum_sentiments += response.sentiment
@@ -224,10 +224,9 @@ class TwitterClientService @Inject() (ws: WSClient,
                 case scala.util.Success(value) =>
                   logger.debug(s"Correctly updated tweet with: ${value}")
               }
-
-
-
               logger.debug(s"Average sentiment of the tweet ${sum_sentiments/lst_tweet_response.size.toDouble}")
+
+             */
 
               logger.debug(s"Tweet: $tweet")
               logger.debug(s"Replies: $replies")

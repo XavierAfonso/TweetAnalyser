@@ -16,7 +16,7 @@ import services.TwitterClientService
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 case class HttpBinResponse(origin: String, headers: Map[String, String])
 
@@ -117,15 +117,42 @@ class TwitterAnalysisController @Inject()(cc: ControllerComponents,
   def deleteTweet(id:Long) = Action.async { request =>
     logger.info("In analyze endpoint")
 
-    if (!JwtUtility.verifyJwt(request)) {
-      Unauthorized("You must be logged in")
-    }
+    if (JwtUtility.verifyJwt(request)) {
 
-    twitterRepository.delete(id).flatMap(res => {
-     // Ok(Json.toJson("ok"))
-      tweetResponseRepository.deleteAllTweetId(id).map(res2 => {
-        Ok(Json.toJson("ok"))
+      val user = JwtUtility.getUser(request)
+
+      var continue = true
+
+      val tweet = Try(Await.result(twitterRepository.get(id), Duration.Inf))
+      tweet match {
+        case scala.util.Success(res) =>
+          val value: Tweet = res.asInstanceOf[Some[Tweet]].value
+
+          if(user != value.user_id){
+            continue = false
+          }
+
+      }
+
+      if(continue) {
+
+        twitterRepository.delete(id).flatMap(res => {
+          tweetResponseRepository.deleteAllTweetId(id).map(res2 => {
+            Ok(Json.toJson("ok"))
+          })
+        })
+      }
+      else{
+        twitterRepository.get(id).map( res => {
+          Unauthorized("You have not the right access")
+        })
+      }
+    }
+    else{
+
+      twitterRepository.get(id).map( res => {
+        Unauthorized("You must be logged in")
       })
-    })
+    }
   }
 }
