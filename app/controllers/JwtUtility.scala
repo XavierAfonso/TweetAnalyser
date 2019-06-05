@@ -3,8 +3,10 @@ package controllers
 import models.User
 import play.api.mvc.{Action, RequestHeader, Result}
 import play.api.libs.json.{JsObject, JsString, JsValue, Json}
-import pdi.jwt.{JwtAlgorithm, JwtJson}
+import pdi.jwt.{JwtAlgorithm, JwtClaim, JwtJson}
 import play.api.mvc.Results.Unauthorized
+
+import scala.util.{Failure, Success, Try}
 
 
 object JwtUtility {
@@ -20,7 +22,21 @@ object JwtUtility {
 
   def verifyJwt(implicit req: RequestHeader): Boolean = {
     val jwt_token = getJwtToken(req)
-    !jwt_token.isEmpty
+
+    if (jwt_token.isEmpty)
+      return false
+
+    val res = Try(JwtJson.decode(jwt_token, secret, Seq(JwtAlgorithm.HS256)))
+
+    try {
+      var result = JwtJson.decode(jwt_token, secret, Seq(JwtAlgorithm.HS256))
+      result.isSuccess
+    } catch {
+      case e: Exception => {
+        println(s"Exception: ${e}")
+        false
+      }
+    }
   }
 
   def authenticate(user: User): String = {
